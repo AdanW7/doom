@@ -132,3 +132,8 @@
       "w n" nil  ; clear evil-window-new so "w n" can become a prefix
       :desc "New scratch buffer (horizontal)" "w n s" #'+my/new-scratch-split-horizontal
       :desc "New scratch buffer (vertical)"   "w n v" #'+my/new-scratch-split-vertical)
+
+(map! :map vertico-map
+      "TAB"     #'vertico-next
+      "<backtab>" #'vertico-previous
+      "M-RET"   #'vertico-exit)

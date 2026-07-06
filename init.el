@@ -45,7 +45,7 @@
        (popup +defaults)   ; tame sudden yet inevitable temporary windows
        ;;smooth-scroll     ; So smooth you won't believe it's not butter
        tabs              ; a tab bar for Emacs
-       treemacs          ; a project drawer, like neotree but cooler
+       (treemacs  +lsp)          ; a project drawer, like neotree but cooler
        ;;unicode           ; extended unicode support for various languages
        (vc-gutter +pretty) ; vcs diff in the fringe
        vi-tilde-fringe   ; fringe tildes to mark beyond EOB
@@ -164,7 +164,7 @@
        plantuml          ; diagrams for confusing people more
        graphviz          ; diagrams for confusing yourself even more
        purescript        ; javascript, but functional
-       (python +lsp +tree-sitter)            ; beautiful is better than ugly
+       (python +lsp +tree-sitter +uv +cython)            ; beautiful is better than ugly
        qt                ; the 'cutest' gui framework ever
        racket            ; a DSL for DSLs
        raku              ; the artist formerly known as perl6
@@ -181,7 +181,7 @@
        swift             ; who asked for emoji variables?
        terra             ; Earth and Moon in alignment for performance.
        web               ; the tubes
-       yaml              ; JSON, but readable
+       (yaml +lsp +tree-sitter)              ; JSON, but readable
        (zig +lsp +tree-sitter)               ; C, but simpler
 
        :email
