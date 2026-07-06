@@ -6,8 +6,8 @@
 
 ;; Some functionality uses this to identify you, e.g. GPG configuration, email
 ;; clients, file templates and snippets. It is optional.
-;; (setq user-full-name "John Doe"
-;;       user-mail-address "john@doe.com")
+ (setq user-full-name "Adan Wodzinski"
+      user-mail-address "AdanWodzinski7@gmail.com")
 
 ;; Doom exposes five (optional) variables for controlling fonts in Doom:
 ;;
@@ -21,8 +21,8 @@
 ;; See 'C-h v doom-font' for documentation and more examples of what they
 ;; accept. For example:
 ;;
-;;(setq doom-font (font-spec :family "Fira Code" :size 12 :weight 'semi-light)
-;;      doom-variable-pitch-font (font-spec :family "Fira Sans" :size 13))
+(setq doom-font (font-spec :family "Fira Code" :size 12 :weight 'semi-light)
+     doom-variable-pitch-font (font-spec :family "Fira Sans" :size 13))
 ;;
 ;; If you or Emacs can't find your font, use 'M-x describe-font' to look them
 ;; up, `M-x eval-region' to execute elisp code, and 'M-x doom/reload-font' to
@@ -58,7 +58,7 @@
 ;;     package is loaded (see 'C-h v VARIABLE' to look them up).
 ;;   - Setting doom variables (which start with 'doom-' or '+').
 ;;
-;; Here are some additional functions/macros that will help you configure Doom.
+;
 ;;
 ;; - `load!' for loading external *.el files relative to this one
 ;; - `add-load-path!' for adding directories to the `load-path', relative to
@@ -80,3 +80,56 @@
       doom-modeline-persp-name t)
 
 (setq treesit-font-lock-level 4)
+
+
+;; gh -> "0"  (absolute start of line)
+;; gs -> "^"  (first non-blank)
+;; gl -> "$"  (end of line)
+;; ge -> "G"  (end of file) -- NOTE: this shadows Evil's default "ge"
+;;            (backward-end-of-word).
+(map! :n  "gh" #'evil-beginning-of-line
+      :v  "gh" #'evil-beginning-of-line
+      :o  "gh" #'evil-beginning-of-line
+      :n  "gs" #'evil-first-non-blank
+      :v  "gs" #'evil-first-non-blank
+      :o  "gs" #'evil-first-non-blank
+      :n  "gl" #'evil-end-of-line
+      :v  "gl" #'evil-end-of-line
+      :o  "gl" #'evil-end-of-line
+      :n  "ge" #'evil-goto-line
+      :v  "ge" #'evil-goto-line
+      :o  "ge" #'evil-goto-line)
+
+(map! :n "C-d" (cmd! (evil-scroll-down nil) (recenter))
+      :v "C-d" (cmd! (evil-scroll-down nil) (recenter))
+      :n "C-u" (cmd! (evil-scroll-up nil) (recenter))
+      :v "C-u" (cmd! (evil-scroll-up nil) (recenter)))
+
+(setq evil-vsplit-window-right t   ; SPC w v -> new window opens to the RIGHT
+      evil-split-window-below t)   ; SPC w s -> new window opens BELOW
+
+
+(defun +my/scratch-buffer-here ()
+  "Switch the selected window to a fresh, file-less scratch buffer."
+  (let ((buf (generate-new-buffer "*scratch*")))
+    (with-current-buffer buf
+      (fundamental-mode)
+      (setq buffer-offer-save nil))
+    (switch-to-buffer buf)))
+
+(defun +my/new-scratch-split-horizontal ()
+  "Horizontal split with a new scratch buffer (mirrors <leader>wns)."
+  (interactive)
+  (evil-window-split)
+  (+my/scratch-buffer-here))
+
+(defun +my/new-scratch-split-vertical ()
+  "Vertical split with a new scratch buffer (mirrors <leader>wnv)."
+  (interactive)
+  (evil-window-vsplit)
+  (+my/scratch-buffer-here))
+
+(map! :leader
+      "w n" nil  ; clear evil-window-new so "w n" can become a prefix
+      :desc "New scratch buffer (horizontal)" "w n s" #'+my/new-scratch-split-horizontal
+      :desc "New scratch buffer (vertical)"   "w n v" #'+my/new-scratch-split-vertical)
