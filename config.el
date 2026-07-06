@@ -78,3 +78,5 @@
 (setq doom-modeline-project-name t
       doom-modeline-workspace-name t
       doom-modeline-persp-name t)
+
+(setq treesit-font-lock-level 4)
