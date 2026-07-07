@@ -128,12 +128,89 @@
   (evil-window-vsplit)
   (+my/scratch-buffer-here))
 
+;; create scratch buffers
 (map! :leader
       "w n" nil  ; clear evil-window-new so "w n" can become a prefix
       :desc "New scratch buffer (horizontal)" "w n s" #'+my/new-scratch-split-horizontal
       :desc "New scratch buffer (vertical)"   "w n v" #'+my/new-scratch-split-vertical)
 
+;; completion keybind update
 (map! :map vertico-map
       "TAB"     #'vertico-next
       "<backtab>" #'vertico-previous
       "M-RET"   #'vertico-exit)
+
+
+;; lsp setup
+(map! :leader
+      :desc "LSP: Format buffer"        "l f" #'eglot-format-buffer
+      :desc "LSP: Toggle inlay hints"   "l h" #'eglot-inlay-hints-mode)
+
+
+;; setup python to use ruff and ty
+(after! eglot
+  (add-to-list 'eglot-server-programs
+               '((python-mode python-ts-mode) . ("rass" "--" "ty" "server" "--" "ruff" "server"))))
+
+(setq delete-trailing-lines nil)
+(add-hook 'before-save-hook #'delete-trailing-whitespace)
+
+
+(defun +my/remove-zero-width ()
+  "Remove invisible Unicode formatting characters from current buffer."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "[\u200b\u200c\u200d\u200e\u200f\ufeff]" nil t)
+      (replace-match "")))
+  (message "Invisible Unicode formatting characters removed from current buffer"))
+
+(defun +my/indent-style (width)
+  "Set indent width for the current buffer (tab-width and evil-shift-width)."
+  (interactive "nIndent width: ")
+  (if (or (not (integerp width)) (< width 1))
+      (message "Usage: M-x +my/indent-style, width must be >= 1")
+    (setq-local tab-width width)
+    (setq-local evil-shift-width width)
+    (message "Indent width set to %d for current buffer" width)))
+
+(defun +my/strip-whitespace ()
+  "Remove trailing whitespace from current buffer."
+  (interactive)
+  (delete-trailing-whitespace)
+  (message "Trailing whitespace removed"))
+
+(defun +my/yank-path ()
+  "Copy absolute path of current file to the system clipboard."
+  (interactive)
+  (if-let ((path (buffer-file-name)))
+      (progn
+        (kill-new path)
+        (message "Yanked: %s" path))
+    (message "Buffer is not visiting a file")))
+
+;; ============================================================================
+;; Ripgrep / Consult
+;; ============================================================================
+
+(setq grep-program "rg"
+      grep-use-null-device nil
+      grep-command "rg --color=never --no-heading --line-number ")
+
+(defun +adan/search-word ()
+  "Search current word or visual selection with ripgrep."
+  (interactive)
+  (let ((query
+         (if (use-region-p)
+             (buffer-substring-no-properties
+              (region-beginning)
+              (region-end))
+           (thing-at-point 'word t))))
+    (when query
+      (consult-ripgrep nil query))))
+
+(map! :leader
+      :prefix ("f" . "find")
+      :desc "Ripgrep" "g" #'consult-ripgrep
+      :desc "Search word" "w" #'+adan/search-word)
+
