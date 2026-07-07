@@ -382,3 +382,28 @@ on the right that persists across entry visits."
   :commands (wgrep-change-to-wgrep-mode)
   :init
   (setq wgrep-auto-save-buffer t))    ; C-c C-c both applies and saves, no extra prompt
+
+;; Blink cursor
+;; (blink-cursor-mode 1)
+
+(setq display-line-numbers-type 'relative)
+
+;; Performance optimizations
+(setq gc-cons-threshold (* 256 1024 1024))
+(setq read-process-output-max (* 4 1024 1024))
+(setq comp-deferred-compilation t)
+(setq comp-async-jobs-number 8)
+
+;; Garbage collector optimization
+(setq gcmh-idle-delay 5)
+(setq gcmh-high-cons-threshold (* 1024 1024 1024))
+
+;; Version control optimization
+(setq vc-handled-backends '(Git))
+
+;; Fix x11 issues
+(setq x-no-window-manager t)
+(setq frame-inhibit-implied-resize t)
+(setq focus-follows-mouse nil)
+;; Speed of which-key popup
+(setq which-key-idle-delay 0.1)
