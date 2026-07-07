@@ -9,6 +9,39 @@
 ;; (setq user-full-name "John Doe"
 ;;       user-mail-address "john@doe.com")
 
+
+;; ============================================================================
+;; Security
+;; ============================================================================
+;; Emacs 30's `trusted-content' gate disables elisp-flymake-byte-compile (and
+;; Doom's own reduced byte-compile backend) in any .el file not explicitly
+;; marked trusted. Trust our own config and Doom's package tree so flymake
+;; works normally in config.el/init.el and installed theme/package files.
+(after! files
+  (dolist (dir (list doom-user-dir doom-emacs-dir))
+    (add-to-list 'trusted-content (expand-file-name dir))))
+
+
+;; ============================================================================
+;; Appearance
+;; ============================================================================
+
+;; There are two ways to load a theme. Both assume the theme is installed and
+;; available. You can either set `doom-theme' or manually load a theme with the
+;; `load-theme' function. This is the default:
+;; (setq doom-theme 'doom-one)
+(setq doom-theme 'doom-helix)
+
+;; This determines the style of line numbers in effect. If set to `nil', line
+;; numbers are disabled. For relative line numbers, set this to `relative'.
+(setq display-line-numbers-type t)
+
+(setq doom-modeline-project-name t
+      doom-modeline-workspace-name t
+      doom-modeline-persp-name t)
+
+(setq treesit-font-lock-level 4)
+
 ;; Doom exposes five (optional) variables for controlling fonts in Doom:
 ;;
 ;; - `doom-font' -- the primary font to use
@@ -29,21 +62,19 @@
 ;; refresh your font settings. If Emacs still can't find your font, it likely
 ;; wasn't installed correctly. Font issues are rarely Doom issues!
 
-;; There are two ways to load a theme. Both assume the theme is installed and
-;; available. You can either set `doom-theme' or manually load a theme with the
-;; `load-theme' function. This is the default:
-;; (setq doom-theme 'doom-one)
-(setq doom-theme 'doom-helix)
 
-;; This determines the style of line numbers in effect. If set to `nil', line
-;; numbers are disabled. For relative line numbers, set this to `relative'.
-(setq display-line-numbers-type t)
+;; ============================================================================
+;; Org
+;; ============================================================================
 
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
 (setq org-directory "~/org/")
 
 
+;; ============================================================================
+;; Evil / motion keybindings
+;; ============================================================================
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
 ;; `with-eval-after-load' block, otherwise Doom's defaults may override your
 ;; settings. E.g.
@@ -75,12 +106,6 @@
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
 
-(setq doom-modeline-project-name t
-      doom-modeline-workspace-name t
-      doom-modeline-persp-name t)
-
-(setq treesit-font-lock-level 4)
-
 ;; gh -> "0"  (absolute start of line)
 ;; gs -> "^"  (first non-blank)
 ;; gl -> "$"  (end of line)
@@ -97,8 +122,8 @@
       :o  "gl" #'evil-end-of-line
       :n  "ge" #'evil-goto-line
       :v  "ge" #'evil-goto-line
-      :n  "U" #'evil-redo
-      :o  "ge" #'evil-goto-line)
+      :o  "ge" #'evil-goto-line
+      :n  "U"  #'evil-redo)
 
 (map! :n "C-d" (cmd! (evil-scroll-down nil) (recenter))
       :v "C-d" (cmd! (evil-scroll-down nil) (recenter))
@@ -108,6 +133,16 @@
 (setq evil-vsplit-window-right t   ; SPC w v -> new window opens to the RIGHT
       evil-split-window-below t)   ; SPC w s -> new window opens BELOW
 
+;; completion keybind update
+(map! :map vertico-map
+      "TAB"       #'vertico-next
+      "<backtab>" #'vertico-previous
+      "M-RET"     #'vertico-exit)
+
+
+;; ============================================================================
+;; Scratch buffers
+;; ============================================================================
 
 (defun +my/scratch-buffer-here ()
   "Switch the selected window to a fresh, file-less scratch buffer."
@@ -129,33 +164,32 @@
   (evil-window-vsplit)
   (+my/scratch-buffer-here))
 
-;; create scratch buffers
 (map! :leader
       "w n" nil  ; clear evil-window-new so "w n" can become a prefix
       :desc "New scratch buffer (horizontal)" "w n s" #'+my/new-scratch-split-horizontal
       :desc "New scratch buffer (vertical)"   "w n v" #'+my/new-scratch-split-vertical)
 
-;; completion keybind update
-(map! :map vertico-map
-      "TAB"     #'vertico-next
-      "<backtab>" #'vertico-previous
-      "M-RET"   #'vertico-exit)
 
+;; ============================================================================
+;; LSP / eglot
+;; ============================================================================
 
-;; lsp setup
 (map! :leader
-      :desc "LSP: Format buffer"        "l f" #'eglot-format-buffer
-      :desc "LSP: Toggle inlay hints"   "l h" #'eglot-inlay-hints-mode)
-
+      :desc "LSP: Format buffer"      "l f" #'eglot-format-buffer
+      :desc "LSP: Toggle inlay hints" "l h" #'eglot-inlay-hints-mode)
 
 ;; setup python to use ruff and ty
 (after! eglot
   (add-to-list 'eglot-server-programs
                '((python-mode python-ts-mode) . ("rass" "--" "ty" "server" "--" "ruff" "server"))))
 
+
+;; ============================================================================
+;; File hygiene / buffer utilities
+;; ============================================================================
+
 (setq delete-trailing-lines nil)
 (add-hook 'before-save-hook #'delete-trailing-whitespace)
-
 
 (defun +my/remove-zero-width ()
   "Remove invisible Unicode formatting characters from current buffer."
@@ -190,8 +224,9 @@
         (message "Yanked: %s" path))
     (message "Buffer is not visiting a file")))
 
+
 ;; ============================================================================
-;; Ripgrep / Consult
+;; Ripgrep / Consult search
 ;; ============================================================================
 
 (setq grep-program "rg"
@@ -212,14 +247,110 @@
 
 (map! :leader
       :prefix ("f" . "find")
-      :desc "Ripgrep" "g" #'consult-ripgrep
-      :desc "Search word" "w" #'+adan/search-word)
+      :desc "Ripgrep"      "g" #'consult-ripgrep
+      :desc "Search word"  "w" #'+adan/search-word)
+
+
+;; ============================================================================
+;; Quickfix-style lists (tabulated-list based, vim-quickfix-like keys)
+;; ============================================================================
+;; Shared dd/d/filter commands work on any tabulated-list-derived buffer --
+;; used below by both the flymake diagnostics buffer and the ripgrep list.
+
+(defun +tabulated-list/delete-entry ()
+  "Remove the tabulated-list entry at point."
+  (interactive)
+  (when (derived-mode-p 'tabulated-list-mode)
+    (let ((inhibit-read-only t)) (tabulated-list-delete-entry))))
+
+(defun +tabulated-list/delete-region (beg end)
+  "Remove tabulated-list entries spanning the active region."
+  (interactive "r")
+  (when (derived-mode-p 'tabulated-list-mode)
+    (let ((inhibit-read-only t)
+          (start-line (line-number-at-pos beg))
+          (end-line (line-number-at-pos end)))
+      (goto-char (point-min))
+      (forward-line (1- start-line))
+      (dotimes (_ (1+ (- end-line start-line)))
+        (when (tabulated-list-get-id) (tabulated-list-delete-entry)))
+      (evil-normal-state))))
+
+(defun +tabulated-list/filter (pattern &optional remove)
+  "Keep (or, with prefix arg, remove) entries matching PATTERN."
+  (interactive
+   (list (read-string (format "%s entries matching: " (if current-prefix-arg "Remove" "Keep")))
+         current-prefix-arg))
+  (when (derived-mode-p 'tabulated-list-mode)
+    (setq tabulated-list-entries
+          (seq-filter
+           (lambda (entry)
+             (let ((text (mapconcat (lambda (c) (format "%s" c)) (append (cadr entry) nil) " ")))
+               (if remove (not (string-match-p pattern text)) (string-match-p pattern text))))
+           tabulated-list-entries))
+    (let ((inhibit-read-only t)) (tabulated-list-print t))))
+
+;; --- Ripgrep list: a persistent, editable "quickfix" buffer -----------------
+
+(define-derived-mode +ripgrep-list-mode tabulated-list-mode "Ripgrep-List"
+  "Persistent, editable ripgrep results buffer -- a vim quickfix analogue."
+  (setq tabulated-list-format
+        [("File" 40 t) ("Line" 6 nil) ("Match" 0 nil)])
+  (setq tabulated-list-padding 2)
+  (tabulated-list-init-header))
+
+(defun +ripgrep-list--visit-entry ()
+  "Jump to the file/line for the entry at point."
+  (interactive)
+  (when-let* ((id (tabulated-list-get-id)))
+    (find-file (car id))
+    (goto-char (point-min))
+    (forward-line (1- (cdr id)))))
+
+(defun +ripgrep-quickfix (pattern &optional dir)
+  "Run ripgrep for PATTERN under DIR (default: project root) into a
+sticky, editable +ripgrep-list-mode buffer."
+  (interactive
+   (list (read-string "Ripgrep for: ")
+         (or (doom-project-root) default-directory)))
+  (let* ((default-directory (or dir default-directory))
+         (buf (get-buffer-create (format "*ripgrep: %s*" pattern)))
+         entries)
+    (with-temp-buffer
+      (call-process "rg" nil t nil "--json" "--" pattern)
+      (goto-char (point-min))
+      (while (not (eobp))
+        (when-let* ((json (ignore-errors
+                             (json-parse-string
+                              (buffer-substring-no-properties (line-beginning-position) (line-end-position))
+                              :object-type 'plist))))
+          (when (equal (plist-get json :type) "match")
+            (let* ((data (plist-get json :data))
+                   (path (plist-get (plist-get data :path) :text))
+                   (line-number (plist-get data :line_number))
+                   (text (string-trim (plist-get (plist-get data :lines) :text))))
+              (push (list (cons path line-number)
+                          (vector path (number-to-string line-number) text))
+                    entries))))
+        (forward-line 1)))
+    (with-current-buffer buf
+      (+ripgrep-list-mode)
+      (setq tabulated-list-entries (nreverse entries))
+      (tabulated-list-print t))
+    (pop-to-buffer buf)))
+
+(map! :map (flymake-diagnostics-buffer-mode-map +ripgrep-list-mode-map)
+      :n "dd"    #'+tabulated-list/delete-entry
+      :v "d"     #'+tabulated-list/delete-region
+      :n "C-x f" #'+tabulated-list/filter)
+
+(map! :map +ripgrep-list-mode-map
+      :n "RET" #'+ripgrep-list--visit-entry)
+
+;; --- Leader bindings for both lists ------------------------------------------
 
 (map! :leader
       :prefix "l"
-      :desc "Buffer diagnostics"  "d" #'flymake-show-buffer-diagnostics
-      :desc "Project diagnostics" "D" #'flymake-show-project-diagnostics)
-
-(after! files
-  (dolist (dir (list doom-user-dir doom-emacs-dir))
-    (add-to-list 'trusted-content (expand-file-name dir))))
+      :desc "Buffer diagnostics"   "d" #'flymake-show-buffer-diagnostics
+      :desc "Project diagnostics"  "D" #'flymake-show-project-diagnostics
+      :desc "Ripgrep list"         "g" #'+ripgrep-quickfix)
