@@ -97,6 +97,7 @@
       :o  "gl" #'evil-end-of-line
       :n  "ge" #'evil-goto-line
       :v  "ge" #'evil-goto-line
+      :n  "U" #'evil-redo
       :o  "ge" #'evil-goto-line)
 
 (map! :n "C-d" (cmd! (evil-scroll-down nil) (recenter))
@@ -214,3 +215,11 @@
       :desc "Ripgrep" "g" #'consult-ripgrep
       :desc "Search word" "w" #'+adan/search-word)
 
+(map! :leader
+      :prefix "l"
+      :desc "Buffer diagnostics"  "d" #'flymake-show-buffer-diagnostics
+      :desc "Project diagnostics" "D" #'flymake-show-project-diagnostics)
+
+(after! files
+  (dolist (dir (list doom-user-dir doom-emacs-dir))
+    (add-to-list 'trusted-content (expand-file-name dir))))
