@@ -276,11 +276,7 @@
         (when (tabulated-list-get-id) (tabulated-list-delete-entry)))
       (evil-normal-state))))
 
-(defun +tabulated-list/filter (pattern &optional remove)
-  "Keep (or, with prefix arg, remove) entries matching PATTERN."
-  (interactive
-   (list (read-string (format "%s entries matching: " (if current-prefix-arg "Remove" "Keep")))
-         current-prefix-arg))
+(defun +tabulated-list--filter (pattern remove)
   (when (derived-mode-p 'tabulated-list-mode)
     (setq tabulated-list-entries
           (seq-filter
@@ -289,6 +285,16 @@
                (if remove (not (string-match-p pattern text)) (string-match-p pattern text))))
            tabulated-list-entries))
     (let ((inhibit-read-only t)) (tabulated-list-print t))))
+
+(defun +tabulated-list/filter-keep (pattern)
+  "Keep only entries matching PATTERN."
+  (interactive (list (read-string "Keep entries matching: ")))
+  (+tabulated-list--filter pattern nil))
+
+(defun +tabulated-list/filter-remove (pattern)
+  "Remove entries matching PATTERN."
+  (interactive (list (read-string "Remove entries matching: ")))
+  (+tabulated-list--filter pattern t))
 
 ;; --- Ripgrep list: a persistent, editable "quickfix" buffer -----------------
 
@@ -300,16 +306,17 @@
   (tabulated-list-init-header))
 
 (defun +ripgrep-list--visit-entry ()
-  "Jump to the file/line for the entry at point."
+  "Jump to the file/line for the entry at point, in another window."
   (interactive)
   (when-let* ((id (tabulated-list-get-id)))
-    (find-file (car id))
+    (find-file-other-window (car id))
     (goto-char (point-min))
     (forward-line (1- (cdr id)))))
 
 (defun +ripgrep-quickfix (pattern &optional dir)
   "Run ripgrep for PATTERN under DIR (default: project root) into a
-sticky, editable +ripgrep-list-mode buffer."
+sticky, editable +ripgrep-list-mode buffer, displayed as a vsplit
+on the right that persists across entry visits."
   (interactive
    (list (read-string "Ripgrep for: ")
          (or (doom-project-root) default-directory)))
@@ -337,12 +344,17 @@ sticky, editable +ripgrep-list-mode buffer."
       (+ripgrep-list-mode)
       (setq tabulated-list-entries (nreverse entries))
       (tabulated-list-print t))
-    (pop-to-buffer buf)))
+    (pop-to-buffer
+     buf
+     '((display-buffer-reuse-window display-buffer-in-direction)
+       (direction . right)
+       (window-width . 0.4)))))
 
 (map! :map (flymake-diagnostics-buffer-mode-map +ripgrep-list-mode-map)
       :n "dd"    #'+tabulated-list/delete-entry
       :v "d"     #'+tabulated-list/delete-region
-      :n "C-x f" #'+tabulated-list/filter)
+      :n "C-x f" #'+tabulated-list/filter-keep
+      :n "C-x F" #'+tabulated-list/filter-remove)
 
 (map! :map +ripgrep-list-mode-map
       :n "RET" #'+ripgrep-list--visit-entry)
@@ -354,3 +366,19 @@ sticky, editable +ripgrep-list-mode buffer."
       :desc "Buffer diagnostics"   "d" #'flymake-show-buffer-diagnostics
       :desc "Project diagnostics"  "D" #'flymake-show-project-diagnostics
       :desc "Ripgrep list"         "g" #'+ripgrep-quickfix)
+
+;; ============================================================================
+;; Embark / wgrep -- grep-mode buffer editing ("cdo, but visual")
+;; ============================================================================
+
+(use-package! embark
+  :init
+  (setq embark-quit-after-action nil)) ; keep minibuffer state around after acting
+
+(use-package! embark-consult
+  :after (embark consult)) ; teaches embark to export consult-ripgrep -> grep-mode
+
+(use-package! wgrep
+  :commands (wgrep-change-to-wgrep-mode)
+  :init
+  (setq wgrep-auto-save-buffer t))    ; C-c C-c both applies and saves, no extra prompt
